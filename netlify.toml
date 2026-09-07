@@ -3,24 +3,10 @@
 # Invite Daddy Limited · Company Registration Number 759077 · Registered in Ireland
 # ============================================================================
 #
-# BEFORE GOING LIVE WITH PAYMENTS
-# -------------------------------
-# Replace every occurrence of [BANK_DOMAIN_TBD] below with the exact origin the
-# acquiring bank serves its hosted-fields / iframe from. Take it from the
-# acquirer's integration documentation — do not guess it.
-#
-# Format: scheme + host, no trailing slash, no path.
-#   correct:   https://secure.example-acquirer.ie
-#   incorrect: secure.example-acquirer.ie  /  https://secure.example-acquirer.ie/
-#
-# There may be MORE THAN ONE domain: gateways commonly serve the iframe from one
-# host, the JS SDK from a second, and 3-D Secure step-up from a third (often the
-# card issuer's ACS domain). Ask the bank for the complete list and add each one,
-# space-separated, to the matching directives.
-#
-# Until the real domain is in place the payment iframe WILL be blocked by CSP.
+# Payment provider: Revolut Merchant (Hosted Checkout Page).
+# The customer enters an amount, a serverless function creates a Revolut order,
+# and the customer is redirected to checkout.revolut.com to pay.
 # ============================================================================
-
 [build]
   publish = "."
 
@@ -35,34 +21,21 @@
     X-Frame-Options = "DENY"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
     Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=(self)"
-
     # CSP notes:
-    #  - 'unsafe-inline' in style-src is required because the pages use inline
-    #    style attributes. Scripts are NOT given 'unsafe-inline'.
-    #  - JSON-LD blocks (type="application/ld+json") are data, not executable
-    #    script, and are unaffected by script-src.
-    #  - frame-src   = where the payment iframe may be loaded FROM.
-    #  - script-src  = where the gateway's init script may be loaded FROM.
-    #  - connect-src = where that script may call (XHR/fetch/WebSocket).
-    #  - form-action stays 'self': this site posts no payment form itself.
-    Content-Security-Policy = "default-src 'self'; script-src 'self' [BANK_DOMAIN_TBD]; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: [BANK_DOMAIN_TBD]; connect-src 'self' [BANK_DOMAIN_TBD]; frame-src [BANK_DOMAIN_TBD]; form-action 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+    #  - connect-src allows the page's fetch() to reach our own Netlify function
+    #    (that's 'self') — the function is what talks to Revolut server-side.
+    #  - Redirect to checkout.revolut.com is a top-level navigation, allowed by
+    #    default, but we also list it in form-action for safety.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://merchant.revolut.com https://checkout.revolut.com; frame-src https://checkout.revolut.com; form-action 'self' https://checkout.revolut.com; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
 
 # ---------------------------------------------------------------------------
-# Payment routes — the only pages that may embed the acquirer's iframe.
-# X-Frame-Options is not overridden here: it governs whether OUR pages may be
-# framed by others (still DENY). It does not affect iframes we host.
+# Payment result pages — do not cache, do not index
 # ---------------------------------------------------------------------------
-[[headers]]
-  for = "/payment/*"
-  [headers.values]
-    Cache-Control = "no-store"
-
 [[headers]]
   for = "/payment-success/*"
   [headers.values]
     Cache-Control = "no-store"
     X-Robots-Tag = "noindex, nofollow"
-
 [[headers]]
   for = "/payment-failed/*"
   [headers.values]
@@ -76,7 +49,6 @@
   for = "/styles.css"
   [headers.values]
     Cache-Control = "public, max-age=3600"
-
 [[headers]]
   for = "/assets/*"
   [headers.values]
