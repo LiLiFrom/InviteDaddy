@@ -232,27 +232,116 @@
         <p style="margin:0;"><strong>All prices are in EUR.</strong> Your card may be charged in your local currency; the exchange rate and any foreign transaction fees are set by your card issuer. Invite Daddy Limited receives only the EUR amount shown and has no control over the rate your bank applies.</p>
       </div>
 
-      <!-- ================= PAYMENT WIDGET ================= -->
+      <!-- ================= PAYMENT WIDGET (Revolut Hosted Checkout) ================= -->
       <h2>Pay securely</h2>
 
       <div class="payment-shell">
-        <!-- PAYMENT WIDGET MOUNT POINT -->
-        <!-- Банк предоставит скрипт инициализации и вставит iframe в этот контейнер. -->
-        <!-- Не добавлять сюда собственные поля ввода карты. -->
-        <div id="payment-widget" aria-live="polite">
-          <div class="widget-loading">
-            <div class="spinner" aria-hidden="true"></div>
-            Loading secure payment form…
-          </div>
-          <noscript>JavaScript is required to complete payment.</noscript>
-        </div>
-        <!-- [BANK_GATEWAY_SCRIPT_TBD] -->
+        <div id="payment-box" style="max-width:480px;">
 
-        <p class="secure-note">
+          <label for="pay-amount" style="display:block;font-weight:600;margin-bottom:6px;">
+            Amount to pay (EUR)
+          </label>
+          <p style="margin:0 0 10px;font-size:0.9rem;color:var(--ink-soft,#555);">
+            Enter the exact amount your consultant confirmed to you in writing.
+          </p>
+
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+            <span aria-hidden="true" style="font-size:1.3rem;font-weight:700;">€</span>
+            <input
+              id="pay-amount"
+              type="number"
+              inputmode="decimal"
+              min="1"
+              max="10000"
+              step="0.01"
+              placeholder="0.00"
+              style="flex:1;padding:12px 14px;font-size:1.1rem;border:1px solid #ccc;border-radius:8px;width:100%;"
+              aria-describedby="pay-help"
+            />
+          </div>
+
+          <label for="pay-email" style="display:block;font-weight:600;margin-bottom:6px;">
+            Email for your receipt (optional)
+          </label>
+          <input
+            id="pay-email"
+            type="email"
+            placeholder="you@example.com"
+            style="width:100%;padding:12px 14px;font-size:1rem;border:1px solid #ccc;border-radius:8px;margin-bottom:18px;"
+          />
+
+          <button id="pay-button" class="btn btn-navy" style="width:100%;font-size:1.05rem;padding:14px;">
+            Continue to secure payment
+          </button>
+
+          <p id="pay-error" role="alert" style="display:none;color:#b00020;margin-top:12px;font-size:0.95rem;"></p>
+
+          <div id="pay-loading" style="display:none;margin-top:12px;font-size:0.95rem;color:var(--ink-soft,#555);">
+            Preparing your secure payment… please wait.
+          </div>
+        </div>
+
+        <p class="secure-note" style="margin-top:20px;">
           <span aria-hidden="true">🔒</span>
-          <span>Your card details are entered directly into a secure form hosted by our acquiring bank. They are never transmitted through, processed by, or stored on invitedaddy.ie. Invite Daddy Limited never sees or holds your full card number, expiry date or security code.</span>
+          <span>When you continue, you are taken to a secure payment page hosted by Revolut, our payment provider. Your card details are entered there and are never transmitted through, processed by, or stored on invitedaddy.ie.</span>
         </p>
       </div>
+
+      <script>
+        (function () {
+          var btn = document.getElementById("pay-button");
+          var amountEl = document.getElementById("pay-amount");
+          var emailEl = document.getElementById("pay-email");
+          var errEl = document.getElementById("pay-error");
+          var loadingEl = document.getElementById("pay-loading");
+
+          function showError(msg) {
+            errEl.textContent = msg;
+            errEl.style.display = "block";
+            loadingEl.style.display = "none";
+            btn.disabled = false;
+          }
+
+          btn.addEventListener("click", async function () {
+            errEl.style.display = "none";
+
+            var amount = parseFloat(amountEl.value);
+            if (!amount || amount < 1) {
+              showError("Please enter a valid amount of at least €1.");
+              return;
+            }
+            if (amount > 10000) {
+              showError("For amounts above €10,000, please contact us directly.");
+              return;
+            }
+
+            btn.disabled = true;
+            loadingEl.style.display = "block";
+
+            try {
+              var resp = await fetch("/.netlify/functions/create-payment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  amount: amount,
+                  email: (emailEl.value || "").trim()
+                })
+              });
+              var data = await resp.json();
+
+              if (!resp.ok || !data.checkout_url) {
+                showError(data.error || "Something went wrong. Please try again.");
+                return;
+              }
+
+              // Send the customer to Revolut's secure checkout page.
+              window.location.href = data.checkout_url;
+            } catch (e) {
+              showError("Could not connect. Please check your internet and try again.");
+            }
+          });
+        })();
+      </script>
 
       <h2>Which cards are accepted?</h2>
       <p>Visa and Mastercard, issued in any country, including cards issued in India, Nepal, Pakistan and Bangladesh.</p>
