@@ -43,6 +43,14 @@
     X-Robots-Tag = "noindex, nofollow"
 
 # ---------------------------------------------------------------------------
+# Netlify Forms detection stub — deployed, but never indexed
+# ---------------------------------------------------------------------------
+[[headers]]
+  for = "/forms/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+# ---------------------------------------------------------------------------
 # Static asset caching
 # ---------------------------------------------------------------------------
 [[headers]]
@@ -53,3 +61,7 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=86400"
+[[headers]]
+  for = "/callback-modal.js"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"

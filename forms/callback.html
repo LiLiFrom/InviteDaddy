@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<title>Callback form (internal)</title>
+</head>
+<body>
+<!--
+  Build-time detection stub for Netlify Forms.
+  The visible form lives in the callback modal (/callback-modal.js), which is
+  injected by JavaScript and therefore invisible to Netlify's HTML parser.
+  This static copy declares the same form-name and the same field names so the
+  form is registered at deploy time. Do not remove; keep fields in sync.
+-->
+<form name="callback" data-netlify="true" data-netlify-honeypot="bot-field" hidden>
+  <input type="hidden" name="form-name" value="callback">
+  <input type="text" name="bot-field">
+  <input type="text" name="name">
+  <input type="text" name="contact">
+  <textarea name="message"></textarea>
+  <input type="text" name="page">
+</form>
+</body>
+</html>
